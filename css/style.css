@@ -1,3 +1,12 @@
 textarea {
-  border: 1px solid red;
+  width: 100%;
+  height: auto;
+  border: none;
+  font-size: 12pt;
+  line-height: 18pt;
+  resize: none;
+}
+
+textarea:focus {
+  outline: none;
 }

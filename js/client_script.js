@@ -3,24 +3,6 @@ var app;
 app = angular.module("app", []);
 
 app.directive('editor', function($compile) {
-  var insertTextAtCursor;
-  insertTextAtCursor = function(el, text) {
-    var endIndex, range, val;
-    val = el.value;
-    endIndex = void 0;
-    range = void 0;
-    if (typeof el.selectionStart !== "undefined" && typeof el.selectionEnd !== "undefined") {
-      endIndex = el.selectionEnd;
-      el.value = val.slice(0, endIndex) + text + val.slice(endIndex);
-      return el.selectionStart = el.selectionEnd = endIndex + text.length;
-    } else if (typeof document.selection !== "undefined" && typeof document.selection.createRange !== "undefined") {
-      el.focus();
-      range = document.selection.createRange();
-      range.collapse(false);
-      range.text = text;
-      return range.select();
-    }
-  };
   return {
     replace: true,
     restrict: 'E',
@@ -30,36 +12,59 @@ app.directive('editor', function($compile) {
       return angular.element(element).append(scope.generateTextBlock);
     },
     controller: function($scope) {
+      var mergeTextBlock;
       $scope.generateTextBlock = function(element) {
-        var el, textblock;
+        var textblock;
         textblock = angular.element(document.createElement('textblock'));
-        el = $compile(textblock)($scope);
+        $compile(textblock)($scope);
         return textblock;
       };
-      $scope.$on('goNextTextBlock', function(event, options) {
-        var newTextBlock, previous;
-        previous = options.element;
-        console.log('goNextTextBlock', previous, options.textToAppend);
-        newTextBlock = $scope.generateTextBlock();
-        angular.element(previous).after(newTextBlock);
-        $scope.$apply();
-        newTextBlock.val(options.textToAppend);
-        newTextBlock.focus();
-        return $(newTextBlock).selectRange(0);
-      });
-      return $scope.$on('destroyTextBlock', function(event, options) {
-        var cursorPos, element, previousTextBlock, textToAppend;
-        element = options.element;
-        textToAppend = options.textToAppend;
-        if ($($scope.container).children().length > 1) {
-          previousTextBlock = $(element).prev()[0];
-          previousTextBlock.focus();
-          element.detach();
-          cursorPos = $(previousTextBlock).getCursorPosition();
-          insertTextAtCursor(previousTextBlock, textToAppend);
-          return $(previousTextBlock).selectRange(cursorPos);
+      $scope.$on('createNewTextBlock', function(event, source) {
+        var $destination, $source, destination, sourceSelection, textToAppend;
+        $source = $(source);
+        sourceSelection = $source.getSelection();
+        if (sourceSelection.start === 0) {
+          return;
         }
+        destination = $scope.generateTextBlock();
+        $source.after(destination);
+        $scope.$apply();
+        $destination = $(destination);
+        $source.setSelection(sourceSelection.start, $source.val().length);
+        textToAppend = $source.extractSelectedText();
+        $destination.insertText(textToAppend, 0);
+        $destination.setSelection(0);
+        return destination.focus();
       });
+      $scope.$on('mergeInPreviousTextBlock', function(event, source) {
+        var $source, destination;
+        $source = $(source);
+        destination = $source.prev('textarea')[0];
+        if (!destination) {
+          return;
+        }
+        return mergeTextBlock($source, $(destination));
+      });
+      $scope.$on('mergeNextTextBlock', function(event, destination) {
+        var $destination, $source;
+        $destination = $(destination);
+        $source = $destination.next('textarea').first();
+        if (!$source) {
+          return;
+        }
+        return mergeTextBlock($source, $destination);
+      });
+      return mergeTextBlock = function($source, $destination) {
+        var destination, endBeforeInsert, source, textToAppend;
+        source = $source.get(0);
+        destination = $destination.get(0);
+        textToAppend = $source.val();
+        destination.focus();
+        endBeforeInsert = $destination.val().length;
+        $destination.insertText(textToAppend, endBeforeInsert);
+        $destination.setSelection(endBeforeInsert);
+        return $source.detach();
+      };
     }
   };
 });
@@ -70,30 +75,25 @@ app.directive('textblock', function() {
     restrict: 'E',
     templateUrl: "/templates/textblock.html",
     link: function(scope, element, attrs) {
-      return $(element).keydown(function(e) {
-        var $element, currentElementNewText, cursorPos, position, text, textToAppend;
+      var $el;
+      $el = $(element);
+      return $el.keydown(function(e) {
+        var selection;
         if (e.which === 13) {
-          console.log('Pressed enter');
-          $element = $(element);
-          cursorPos = $element.getCursorPosition();
-          text = $element.val();
-          textToAppend = text.split('').splice(cursorPos).join('');
-          currentElementNewText = text.split('').splice(0, cursorPos).join('');
-          $element.val(currentElementNewText);
-          scope.$emit('goNextTextBlock', {
-            element: element,
-            textToAppend: textToAppend
-          });
+          scope.$emit('createNewTextBlock', element);
           return false;
         }
         if (e.which === 8) {
-          console.log('Pressed del');
-          position = $(element).getCursorPosition();
-          if (position === 0) {
-            scope.$emit('destroyTextBlock', {
-              element: element,
-              textToAppend: $(element).val()
-            });
+          selection = $el.getSelection();
+          if (selection.start === 0 && selection.end === 0) {
+            scope.$emit('mergeInPreviousTextBlock', element);
+            return false;
+          }
+        }
+        if (e.which === 46) {
+          selection = $el.getSelection();
+          if (selection.end === $el.val().length) {
+            scope.$emit('mergeNextTextBlock', element);
             return false;
           }
         }
@@ -101,42 +101,6 @@ app.directive('textblock', function() {
     }
   };
 });
-
-(function($, undefined_) {
-  $.fn.getCursorPosition = function() {
-    var Sel, SelLength, el, pos;
-    el = $(this).get(0);
-    pos = 0;
-    if ("selectionStart" in el) {
-      pos = el.selectionStart;
-    } else if ("selection" in document) {
-      el.focus();
-      Sel = document.selection.createRange();
-      SelLength = document.selection.createRange().text.length;
-      Sel.moveStart("character", -el.value.length);
-      pos = Sel.text.length - SelLength;
-    }
-    return pos;
-  };
-  return $.fn.selectRange = function(start, end) {
-    if (!end) {
-      end = start;
-    }
-    return this.each(function() {
-      var range;
-      if (this.setSelectionRange) {
-        this.focus();
-        return this.setSelectionRange(start, end);
-      } else if (this.createTextRange) {
-        range = this.createTextRange();
-        range.collapse(true);
-        range.moveEnd("character", end);
-        range.moveStart("character", start);
-        return range.select();
-      }
-    });
-  };
-})(jQuery);
 
 var JSONDocCtrl, server_url;
 

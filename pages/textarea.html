@@ -1,0 +1,28 @@
+<html ng-app>
+<head>
+  <meta charset="UTF-8">
+  <title>ShareJS integration test</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.17/jquery-ui.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
+  <script src="http://grp-rt-staging.herokuapp.com/channel/bcsocket.js"></script>
+  <script src="http://grp-rt-staging.herokuapp.com/share/share.js"></script>
+  <script src="http://grp-rt-staging.herokuapp.com/share/textarea.js"></script>
+  <script src="../js/client_script.js"></script>
+  <script src="http://localhost:35729/livereload.js"></script>
+</head>
+<body>
+  <div ng-controller='DocumentCtrl'>
+    <input type="text" ng-model="docname" placeholder="Document name">
+    <button ng-click="openDocument()">Open document</button>
+    <h1>Viewing doc:{{docname}}!</h1>
+    <textarea class="editor"></textarea>
+  </div>
+  <div ng-controller='DocumentCtrl'>
+    <input type="text" ng-model="docname" placeholder="Document name">
+    <button ng-click="openDocument()">Open document</button>
+    <h1>Viewing doc:{{docname}}!</h1>
+    <textarea class="editor"></textarea>
+  </div>
+</body>
+</html>

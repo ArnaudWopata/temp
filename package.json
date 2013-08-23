@@ -1,0 +1,17 @@
+{
+  "name": "grp_node_server_client",
+  "version": "0.0.0",
+  "author": "Arnaud Rinquin <arnaud.rinquin@wopata.com>",
+  "description": "a sharejs server",
+  "contributors": [
+    {
+      "name": "Arnaud Rinquin",
+      "email": "arnaud.rinquin@wopata.com"
+    }
+  ],
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-watch": "~0.5.1"
+  }
+}

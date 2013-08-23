@@ -13,9 +13,13 @@ app.directive('editor', function($compile) {
     },
     controller: function($scope) {
       var mergeTextBlock;
-      $scope.generateTextBlock = function(element) {
+      $scope.sectionsIds = [];
+      $scope.counter = 1;
+      $scope.generateTextBlock = function() {
         var textblock;
-        textblock = angular.element(document.createElement('textblock'));
+        textblock = $('<textblock>');
+        textblock.attr('blockid', $scope.counter);
+        $scope.counter += 1;
         $compile(textblock)($scope);
         return textblock;
       };
@@ -72,16 +76,26 @@ app.directive('editor', function($compile) {
 app.directive('textblock', function() {
   return {
     replace: true,
+    scope: {
+      blockid: '@'
+    },
     restrict: 'E',
     templateUrl: "/templates/textblock.html",
     link: function(scope, element, attrs) {
       var $el;
       $el = $(element);
       return $el.keydown(function(e) {
-        var selection;
+        var cursorPos, previousChar, selection;
         if (e.which === 13) {
-          scope.$emit('createNewTextBlock', element);
-          return false;
+          cursorPos = $el.getSelection().start;
+          previousChar = $el.val().slice(cursorPos - 1, cursorPos);
+          if (previousChar === '\n') {
+            scope.$emit('createNewTextBlock', element);
+            return false;
+          }
+          if ($el.val() === '') {
+            return false;
+          }
         }
         if (e.which === 8) {
           selection = $el.getSelection();

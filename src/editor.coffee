@@ -13,8 +13,14 @@ app.directive 'editor', ($compile)->
       angular.element(element).append scope.generateTextBlock
 
     controller: ($scope)->
-      $scope.generateTextBlock = (element)->
-        textblock = angular.element(document.createElement 'textblock')
+
+      $scope.sectionsIds = []
+      $scope.counter = 1
+
+      $scope.generateTextBlock = ()->
+        textblock = $('<textblock>')
+        textblock.attr('blockid', $scope.counter)
+        $scope.counter+=1
         $compile(textblock)($scope)
         textblock
 
@@ -81,15 +87,21 @@ app.directive 'editor', ($compile)->
 app.directive 'textblock', ->
   {
     replace: true
+    scope:
+      blockid: '@'
     restrict: 'E'
     templateUrl: "/templates/textblock.html"
     link: (scope, element, attrs)->
       $el = $(element)
 
       $el.keydown (e)->
-        if e.which is 13 # ENTER
-          scope.$emit 'createNewTextBlock', element
-          return false # prevent /n to be added
+        if e.which is 13
+          cursorPos = $el.getSelection().start
+          previousChar = $el.val().slice(cursorPos - 1, cursorPos)
+          if previousChar is '\n'
+            scope.$emit 'createNewTextBlock', element
+            return false # prevent /n to be added
+          return false if $el.val() == ''
         if e.which is 8 # BACKSPACE
           selection = $el.getSelection()
           if selection.start is 0 and selection.end is 0 #allow deleting of selection
@@ -101,8 +113,3 @@ app.directive 'textblock', ->
             scope.$emit 'mergeNextTextBlock', element
             return false
   }
-
-
-
-
-
